@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Totem EEEM Clovis Borges Miguel</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#060e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Totem CBM">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  /* ── CARROSSEL ── */
+  #carrossel {
+    position: relative;
+    width: 100%; height: 100%;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    pointer-events: none;
+  }
+  .slide.ativo {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ── SLIDE DE IMAGEM ── */
+  .slide-imagem img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* ── SLIDE DE VÍDEO ── */
+  .slide-video video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #000;
+  }
+
+  /* ── BARRA DE PROGRESSO ── */
+  #barra-progresso {
+    position: fixed;
+    bottom: 0; left: 0;
+    height: 4px;
+    background: rgba(255,255,255,0.5);
+    width: 0%;
+    z-index: 999;
+    transition: width linear;
+  }
+
+  /* ── INDICADORES ── */
+  #indicadores {
+    position: fixed;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 998;
+  }
+  .dot-ind {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .dot-ind.ativo {
+    background: rgba(255,255,255,0.9);
+    transform: scale(1.3);
+  }
+
+  /* ════════════════════════════════════
+     SLIDE DO PAINEL LETIVO — versão animada
+  ════════════════════════════════════ */
+
+  @keyframes pulsa {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.06); }
+  }
+  @keyframes flutua {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+  }
+  @keyframes gira-lento {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes aparece {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes brilha {
+    0%,100% { text-shadow: 0 0 8px rgba(255,200,50,0.3); }
+    50%      { text-shadow: 0 0 20px rgba(255,200,50,0.8); }
+  }
+  @keyframes brilha-azul {
+    0%,100% { text-shadow: 0 0 8px rgba(80,180,255,0.3); }
+    50%      { text-shadow: 0 0 20px rgba(80,180,255,0.8); }
+  }
+  @keyframes estrelinhas {
+    0%   { opacity: 0; transform: scale(0) rotate(0deg); }
+    50%  { opacity: 1; transform: scale(1.2) rotate(180deg); }
+    100% { opacity: 0; transform: scale(0) rotate(360deg); }
+  }
+
+  #slide-letivo {
+    background: #060e1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 28px 18px 20px;
+    gap: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Estrelinhas decorativas de fundo */
+  .estrela-bg {
+    position: absolute;
+    font-size: 14px;
+    opacity: 0;
+    animation: estrelinhas 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Cabeçalho */
+  .letivo-header {
+    text-align: center;
+    width: 100%;
+    animation: aparece 0.6s ease both;
+  }
+  .letivo-escola {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #3a6a8a;
+  }
+  .letivo-relogio {
+    font-size: 3.4rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+    margin: 4px 0 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .letivo-data {
+    font-size: 1rem;
+    color: #4a7a9a;
+    text-transform: capitalize;
+  }
+  .letivo-emoji-dia {
+    font-size: 1.6rem;
+    display: block;
+    margin-top: 2px;
+    animation: flutua 3s ease-in-out infinite;
+  }
+
+  /* Próximo evento */
+  .letivo-evento {
+    width: 100%;
+    background: #0a1e35;
+    border: 2px solid #f0b030;
+    border-radius: 18px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    animation: aparece 0.6s ease 0.1s both;
+    position: relative;
+    overflow: hidden;
+  }
+  .letivo-evento::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(240,176,48,0.04);
+    pointer-events: none;
+  }
+  .letivo-evento.tipo-recesso {
+    border-color: #40b0f0;
+  }
+  .letivo-evento.tipo-recesso::before {
+    background: rgba(64,176,240,0.04);
+  }
+  .letivo-evento .ev-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #4a7a9a;
+  }
+  .letivo-evento .ev-emoji {
+    font-size: 2.2rem;
+    animation: pulsa 2s ease-in-out infinite;
+    line-height: 1.2;
+  }
+  .letivo-evento .ev-nome {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #f0b030;
+    text-align: center;
+    animation: brilha 2.5s ease-in-out infinite;
+    line-height: 1.2;
+  }
+  .letivo-evento.tipo-recesso .ev-nome {
+    color: #50c0f8;
+    animation: brilha-azul 2.5s ease-in-out infinite;
+  }
+  .letivo-evento .ev-contagem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+    color: #6a9aba;
+    margin-top: 4px;
+    white-space: nowrap;
+  }
+  .letivo-evento .ev-contagem b {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #f0b030;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .letivo-evento.tipo-recesso .ev-contagem b { color: #50c0f8; }
+  .letivo-evento .ev-contagem .ev-humor {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+  .letivo-evento .ev-contagem .ev-cal {
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+
+  /* Trimestres */
+  .letivo-secao-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #2a4a6a;
+    width: 100%;
+    text-align: center;
+    margin-bottom: -4px;
+  }
+
+  .letivo-trimestres {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    animation: aparece 0.6s ease 0.2s both;
+  }
+
+  .trimestre-card {
+    background: #0a1e35;
+    border: 1px solid #1e4060;
+    border-radius: 16px;
+    padding: 10px 6px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: border-color 0.3s;
+  }
+  .trimestre-card:hover { border-color: #3a8abd; }
+  .trimestre-card .tc-emoji {
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+  .trimestre-card .tc-titulo {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #3a7aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+  }
+  .trimestre-card .tc-canvas-wrap {
+    position: relative;
+    width: 84px; height: 84px;
+  }
+  .trimestre-card .tc-pct {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #fff;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .trimestre-card .tc-sub {
+    font-size: 0.68rem;
+    color: #2a5a7a;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* Rosca do ano */
+  .letivo-ano {
+    width: 100%;
+    background: #0a1e35;
+    border: 2px solid #10b981;
+    border-radius: 18px;
+    padding: 12px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: aparece 0.6s ease 0.3s both;
+  }
+  .letivo-ano .ano-canvas-wrap {
+    position: relative;
+    width: 96px; height: 96px;
+    flex-shrink: 0;
+  }
+  .letivo-ano .ano-pct {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .letivo-ano .ano-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .letivo-ano .ano-titulo {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #10b981;
+    margin-bottom: 2px;
+  }
+  .stat-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #3a6a7a;
+    border-bottom: 1px solid #0f3040;
+    padding-bottom: 3px;
+  }
+  .stat-linha .sv {
+    font-weight: 900;
+    color: #8ad8b8;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-linha .si { font-size: 0.9rem; margin-right: 3px; }
+</style>
+</head>
+<body>
+
+<div id="carrossel">
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 1 — PAINEL LETIVO (dinâmico)
+  ══════════════════════════════════════════ -->
+  <div class="slide ativo" id="slide-letivo">
+
+    <!-- Estrelinhas animadas de fundo -->
+    <span class="estrela-bg" style="top:8%;left:10%;animation-delay:0s">✨</span>
+    <span class="estrela-bg" style="top:12%;right:12%;animation-delay:1.2s">⭐</span>
+    <span class="estrela-bg" style="top:45%;left:5%;animation-delay:2.4s">✨</span>
+    <span class="estrela-bg" style="top:55%;right:6%;animation-delay:0.7s">⭐</span>
+    <span class="estrela-bg" style="top:80%;left:14%;animation-delay:1.8s">✨</span>
+    <span class="estrela-bg" style="top:75%;right:10%;animation-delay:3s">⭐</span>
+
+    <div class="letivo-header">
+      <div class="letivo-escola">🏫 EEEM Clovis Borges Miguel</div>
+      <div class="letivo-relogio" id="l-relogio">--:--:--</div>
+      <div class="letivo-data" id="l-data">...</div>
+      <span class="letivo-emoji-dia" id="l-emoji-dia">☀️</span>
+    </div>
+
+    <div class="letivo-evento" id="l-evento">
+      <div class="ev-label">📅 próximo evento</div>
+      <div class="ev-emoji" id="l-ev-emoji">🎉</div>
+      <div class="ev-nome" id="l-ev-nome">...</div>
+      <div class="ev-contagem">
+        <span>faltam</span>
+        <b id="l-ev-dias">--</b>
+        <span class="ev-humor" id="l-ev-humor">😒</span>
+        <span>dia(s)</span>
+        <span class="ev-cal">🗓️</span>
+      </div>
+    </div>
+
+    <div class="letivo-secao-label">📊 progresso dos trimestres</div>
+    <div class="letivo-trimestres">
+      <div class="trimestre-card">
+        <div class="tc-emoji">🌞</div>
+        <div class="tc-titulo">1º Trim.</div>
+        <div class="tc-canvas-wrap">
+          <canvas id="ct1"></canvas>
+          <div class="tc-pct" id="cp1">0%</div>
+        </div>
+        <div class="tc-sub" id="cs1">–</div>
+      </div>
+      <div class="trimestre-card">
+        <div class="tc-emoji">🌸</div>
+        <div class="tc-titulo">2º Trim.</div>
+        <div class="tc-canvas-wrap">
+          <canvas id="ct2"></canvas>
+          <div class="tc-pct" id="cp2">0%</div>
+        </div>
+        <div class="tc-sub" id="cs2">–</div>
+      </div>
+      <div class="trimestre-card">
+        <div class="tc-emoji">🏖️</div>
+        <div class="tc-titulo">3º Trim.</div>
+        <div class="tc-canvas-wrap">
+          <canvas id="ct3"></canvas>
+          <div class="tc-pct" id="cp3">0%</div>
+        </div>
+        <div class="tc-sub" id="cs3">–</div>
+      </div>
+    </div>
+
+    <div class="letivo-ano">
+      <div class="ano-canvas-wrap">
+        <canvas id="cAno"></canvas>
+        <div class="ano-pct" id="cpAno">0%</div>
+      </div>
+      <div class="ano-info">
+        <div class="ano-titulo">🎓 Ano letivo 2026</div>
+        <div class="stat-linha">
+          <span>📚 Total</span><span class="sv">201</span>
+        </div>
+        <div class="stat-linha">
+          <span>✅ Cumpridos</span><span class="sv" id="l-cumpridos">–</span>
+        </div>
+        <div class="stat-linha">
+          <span>⏳ Restantes</span><span class="sv" id="l-restantes">–</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /slide-letivo -->
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDES DE MÍDIA
+       Adicione quantos quiser seguindo o padrão
+       abaixo. Coloque os arquivos na mesma pasta
+       que este HTML (ou subpasta /midia/)
+  ══════════════════════════════════════════ -->
+
+  <!-- EXEMPLO — imagem JPEG / PNG -->
+  <!--
+  <div class="slide slide-imagem" data-duracao="15">
+    <img src="midia/informe1.jpg" alt="">
+  </div>
+  -->
+
+  <!-- EXEMPLO — vídeo MP4 (passa quando terminar) -->
+  <!--
+  <div class="slide slide-video" data-duracao="video">
+    <video src="midia/video1.mp4" muted playsinline></video>
+  </div>
+  -->
+
+  <!-- ══ COLE SEUS SLIDES AQUI ══
+       Descomente e edite os blocos acima,
+       ou copie o padrão quantas vezes precisar.
+  ════════════════════════════════ -->
+
+</div><!-- /carrossel -->
+
+<!-- Barra de progresso e indicadores -->
+<div id="barra-progresso"></div>
+<div id="indicadores"></div>
+
+
+<script>
+/* ══════════════════════════════════════════════════
+   CONFIGURAÇÕES — edite aqui se necessário
+══════════════════════════════════════════════════ */
+const DURACAO_PADRAO_IMAGEM = 15;  // segundos para imagens sem data-duracao
+const DURACAO_PAINEL_LETIVO = 30;  // segundos que o painel letivo fica na tela
+
+/* ══════════════════════════════════════════════════
+   DADOS DO CALENDÁRIO LETIVO 2026
+   (gerado a partir da planilha Calendário_2026.xlsx)
+══════════════════════════════════════════════════ */
+const TRIMESTRES = [
+  { inicio: '2026-02-04', fim: '2026-05-14', total: 65 },
+  { inicio: '2026-05-18', fim: '2026-09-03', total: 70 },
+  { inicio: '2026-09-08', fim: '2026-12-15', total: 66 },
+];
+const TOTAL_LETIVOS = 201;
+
+const EVENTOS = [
+  { data: '2026-02-16', nome: 'Carnaval',          tipo: 'feriado' },
+  { data: '2026-02-18', nome: 'Cinzas',             tipo: 'feriado' },
+  { data: '2026-04-03', nome: 'Paixão de Cristo',   tipo: 'feriado' },
+  { data: '2026-04-13', nome: 'N. Srª da Penha',    tipo: 'feriado' },
+  { data: '2026-04-21', nome: 'Tiradentes',          tipo: 'feriado' },
+  { data: '2026-05-01', nome: 'Dia do Trabalho',     tipo: 'feriado' },
+  { data: '2026-06-04', nome: 'Corpus Christi',      tipo: 'feriado' },
+  { data: '2026-06-05', nome: 'Recesso',             tipo: 'recesso' },
+  { data: '2026-07-13', nome: 'Férias',              tipo: 'recesso' },
+  { data: '2026-09-07', nome: 'Independência',       tipo: 'feriado' },
+  { data: '2026-10-12', nome: 'N. Srª Aparecida',    tipo: 'feriado' },
+  { data: '2026-10-15', nome: 'Dia do Professor',    tipo: 'feriado' },
+  { data: '2026-10-16', nome: 'Recesso',             tipo: 'recesso' },
+  { data: '2026-11-02', nome: 'Finados',             tipo: 'feriado' },
+  { data: '2026-11-20', nome: 'Consciência Negra',   tipo: 'feriado' },
+  { data: '2026-12-23', nome: 'Recesso',             tipo: 'recesso' },
+  { data: '2026-12-24', nome: 'Férias',              tipo: 'recesso' },
+];
+
+// Dias não letivos para cálculo correto
+const FERIADOS = new Set(EVENTOS.filter(e=>e.tipo==='feriado').map(e=>e.data));
+const RECESSOS = new Set([
+  '2026-06-05','2026-10-16','2026-12-23',
+  ...Array.from({length:22},(_,i)=>{
+    const d=new Date('2026-07-13'); d.setDate(d.getDate()+i);
+    return d.toISOString().slice(0,10);
+  }),
+  '2026-12-24','2026-12-25','2026-12-28','2026-12-29','2026-12-30','2026-12-31'
+]);
+
+function isLetivo(ds) {
+  const dow = new Date(ds+'T12:00:00').getDay();
+  return dow!==0 && dow!==6 && !FERIADOS.has(ds) && !RECESSOS.has(ds);
+}
+
+function contarLetivos(ini, fim) {
+  let n=0, d=new Date(ini+'T12:00:00'), e=new Date(fim+'T12:00:00');
+  while(d<=e){ if(isLetivo(d.toISOString().slice(0,10))) n++; d.setDate(d.getDate()+1); }
+  return n;
+}
+
+function hojeStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function diffDias(ds) {
+  const h=new Date(); h.setHours(0,0,0,0);
+  return Math.ceil((new Date(ds+'T00:00:00')-h)/86400000);
+}
+
+/* ── GRÁFICOS ── */
+const COR_T   = '#2e7fc0';
+const COR_ANO = '#10b981';
+const COR_BG  = '#0f2035';
+const COR_RES = '#1a3a55';
+
+function criarRosca(id, cor) {
+  return new Chart(document.getElementById(id), {
+    type:'doughnut',
+    data:{ datasets:[{ data:[0,100], backgroundColor:[cor,COR_RES], borderWidth:0, hoverOffset:0 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'74%',
+      animation:{ duration:900 },
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} }
+    }
+  });
+}
+
+let charts = {};
+
+function iniciarGraficos() {
+  charts.t1  = criarRosca('ct1', COR_T);
+  charts.t2  = criarRosca('ct2', COR_T);
+  charts.t3  = criarRosca('ct3', COR_T);
+  charts.ano = criarRosca('cAno', COR_ANO);
+}
+
+function atualizarRosca(ch, labelId, pct) {
+  const v = Math.min(100, Math.max(0, Math.round(pct)));
+  ch.data.datasets[0].data = [v, 100-v];
+  ch.update('none');
+  document.getElementById(labelId).textContent = v+'%';
+}
+
+/* ── EMOJIS por evento ── */
+const EMOJI_EVENTO = {
+  'Carnaval':         '🎭',
+  'Cinzas':           '✝️',
+  'Paixão de Cristo': '✝️',
+  'N. Srª da Penha':  '🙏',
+  'Tiradentes':       '⚔️',
+  'Dia do Trabalho':  '💪',
+  'Corpus Christi':   '🙏',
+  'Recesso':          '😴',
+  'Férias':           '🏖️',
+  'Independência':    '🇧🇷',
+  'N. Srª Aparecida': '🙏',
+  'Dia do Professor': '👩‍🏫',
+  'Finados':          '🕯️',
+  'Consciência Negra':'✊',
+};
+function emojiEvento(nome, tipo) {
+  return EMOJI_EVENTO[nome] || (tipo === 'recesso' ? '🏖️' : '🎉');
+}
+
+/* ── EMOJI de humor pela contagem de dias ── */
+// Sequência: 😒 (>20) 😞 (>14) 😐 (>7) 😊 (>3) 😍 (≤3)
+function emojiHumor(dias) {
+  if (dias > 20) return '😒';
+  if (dias > 14) return '😞';
+  if (dias > 7)  return '😐';
+  if (dias > 3)  return '😊';
+  return '😍';
+}
+function emojiHora(h) {
+  if (h >= 6  && h < 12) return '☀️';
+  if (h >= 12 && h < 14) return '🌤️';
+  if (h >= 14 && h < 18) return '🌅';
+  if (h >= 18 && h < 21) return '🌆';
+  return '🌙';
+}
+
+/* ── ATUALIZAÇÃO DO PAINEL LETIVO ── */
+function atualizarPainel() {
+  const agora = new Date();
+  const hoje  = hojeStr();
+
+  // Relógio e data
+  document.getElementById('l-relogio').textContent = agora.toLocaleTimeString('pt-BR');
+  document.getElementById('l-data').textContent =
+    agora.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('l-emoji-dia').textContent = emojiHora(agora.getHours());
+
+  // Trimestres
+  let totalCumpridos = 0;
+  TRIMESTRES.forEach((t, i) => {
+    let cum = 0;
+    if (hoje < t.inicio) cum = 0;
+    else if (hoje > t.fim) cum = t.total;
+    else cum = contarLetivos(t.inicio, hoje);
+    totalCumpridos += cum;
+    const pct = t.total > 0 ? (cum/t.total)*100 : 0;
+    atualizarRosca(charts['t'+(i+1)], 'cp'+(i+1), pct);
+    const rest = t.total - cum;
+    document.getElementById('cs'+(i+1)).textContent = cum+' cumpr. · '+rest+' rest.';
+  });
+
+  // Ano
+  atualizarRosca(charts.ano, 'cpAno', (totalCumpridos/TOTAL_LETIVOS)*100);
+  document.getElementById('l-cumpridos').textContent = totalCumpridos;
+  document.getElementById('l-restantes').textContent = TOTAL_LETIVOS - totalCumpridos;
+
+  // Próximo evento
+  const prox = EVENTOS.filter(e=>diffDias(e.data)>=0).sort((a,b)=>a.data.localeCompare(b.data));
+  const evBox = document.getElementById('l-evento');
+  if (prox.length > 0) {
+    const ev = prox[0];
+    const dias = diffDias(ev.data);
+    document.getElementById('l-ev-nome').textContent = ev.nome;
+    document.getElementById('l-ev-dias').textContent = dias;
+    document.getElementById('l-ev-emoji').textContent = emojiEvento(ev.nome, ev.tipo);
+    document.getElementById('l-ev-humor').textContent = emojiHumor(dias);
+    evBox.className = ev.tipo === 'recesso' ? 'letivo-evento tipo-recesso' : 'letivo-evento';
+  } else {
+    document.getElementById('l-ev-nome').textContent = 'Fim do ano letivo!';
+    document.getElementById('l-ev-dias').textContent = '0';
+    document.getElementById('l-ev-emoji').textContent = '🎓';
+    document.getElementById('l-ev-humor').textContent = '😍';
+    evBox.className = 'letivo-evento';
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   MOTOR DO CARROSSEL
+══════════════════════════════════════════════════ */
+let slides       = [];
+let idxAtual     = 0;
+let timerSlide   = null;
+let timerBarra   = null;
+let barraInicio  = null;
+let barraDuracao = null;
+
+function coletarSlides() {
+  slides = Array.from(document.querySelectorAll('.slide'));
+  // Garante que o slide letivo sempre existe
+  if (!slides.length) slides = [document.getElementById('slide-letivo')];
+}
+
+function construirIndicadores() {
+  const cont = document.getElementById('indicadores');
+  cont.innerHTML = '';
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot-ind' + (i===0?' ativo':'');
+    cont.appendChild(d);
+  });
+}
+
+function atualizarIndicadores(idx) {
+  document.querySelectorAll('.dot-ind').forEach((d,i) => {
+    d.classList.toggle('ativo', i===idx);
+  });
+}
+
+function iniciarBarra(durMs) {
+  const barra = document.getElementById('barra-progresso');
+  barra.style.transition = 'none';
+  barra.style.width = '0%';
+  void barra.offsetWidth;
+  barraInicio  = Date.now();
+  barraDuracao = durMs;
+  barra.style.transition = `width ${durMs}ms linear`;
+  barra.style.width = '100%';
+}
+
+function proximoSlide() {
+  const anterior = slides[idxAtual];
+  anterior.classList.remove('ativo');
+
+  // Para vídeo do slide anterior
+  const vidAnterior = anterior.querySelector('video');
+  if (vidAnterior) { vidAnterior.pause(); vidAnterior.currentTime = 0; }
+
+  idxAtual = (idxAtual + 1) % slides.length;
+  exibirSlide(idxAtual);
+}
+
+function exibirSlide(idx) {
+  const slide = slides[idx];
+  slide.classList.add('ativo');
+  atualizarIndicadores(idx);
+
+  if (timerSlide) clearTimeout(timerSlide);
+
+  const ehLetivo = slide.id === 'slide-letivo';
+  const ehVideo  = slide.classList.contains('slide-video');
+  const duracaoAttr = slide.dataset.duracao;
+
+  if (ehLetivo) {
+    // Painel letivo: tempo fixo configurável
+    const dur = DURACAO_PAINEL_LETIVO * 1000;
+    iniciarBarra(dur);
+    timerSlide = setTimeout(proximoSlide, dur);
+
+  } else if (ehVideo) {
+    // Vídeo: aguarda terminar
+    const video = slide.querySelector('video');
+    video.currentTime = 0;
+    video.play().catch(()=>{});
+    iniciarBarra(30000); // barra estimada de 30s; recalcula ao saber duração
+    video.onloadedmetadata = () => {
+      const durMs = video.duration * 1000;
+      iniciarBarra(durMs);
+    };
+    video.onended = () => {
+      if (timerSlide) clearTimeout(timerSlide);
+      proximoSlide();
+    };
+    // Fallback caso o vídeo não carregue
+    timerSlide = setTimeout(proximoSlide, 120000);
+
+  } else {
+    // Imagem: usa data-duracao ou padrão
+    const dur = (duracaoAttr && duracaoAttr !== 'video')
+      ? parseInt(duracaoAttr) * 1000
+      : DURACAO_PADRAO_IMAGEM * 1000;
+    iniciarBarra(dur);
+    timerSlide = setTimeout(proximoSlide, dur);
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   REGISTRO DO SERVICE WORKER (PWA offline)
+══════════════════════════════════════════════════ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('Service Worker registrado'))
+      .catch(err => console.warn('SW erro:', err));
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   INICIALIZAÇÃO
+══════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  iniciarGraficos();
+  atualizarPainel();
+  setInterval(atualizarPainel, 1000);
+
+  coletarSlides();
+  construirIndicadores();
+  exibirSlide(0);
+});
+</script>
+</body>
+</html>

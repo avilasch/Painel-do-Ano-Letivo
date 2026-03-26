@@ -1,0 +1,25 @@
+{
+  "name": "Totem EEEM Clovis Borges Miguel",
+  "short_name": "Totem CBM",
+  "description": "Painel letivo e carrossel de informes da EEEM Clovis Borges Miguel",
+  "start_url": "./carrossel_totem.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#060e1a",
+  "theme_color": "#060e1a",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
