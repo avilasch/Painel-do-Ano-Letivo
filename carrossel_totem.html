@@ -225,7 +225,13 @@
     color: #50c0f8;
     animation: brilha-azul 2.5s ease-in-out infinite;
   }
-  .letivo-evento .ev-contagem {
+  .letivo-evento .ev-data {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #a0c8e0;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
     display: flex;
     align-items: center;
     gap: 6px;
@@ -401,6 +407,7 @@
       <div class="ev-label">📅 próximo feriado</div>
       <div class="ev-emoji" id="l-ev-emoji">🎉</div>
       <div class="ev-nome" id="l-ev-nome">...</div>
+      <div class="ev-data" id="l-ev-data">...</div>
       <div class="ev-contagem">
         <span>faltam</span>
         <b id="l-ev-dias">--</b>
@@ -677,12 +684,15 @@ function atualizarPainel() {
     document.getElementById('l-ev-dias').textContent = dias;
     document.getElementById('l-ev-emoji').textContent = emojiEvento(ev.nome, ev.tipo);
     document.getElementById('l-ev-humor').textContent = emojiHumor(dias);
+    const dataFormatada = new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.getElementById('l-ev-data').textContent = dataFormatada;
     evBox.className = ev.tipo === 'recesso' ? 'letivo-evento tipo-recesso' : 'letivo-evento';
   } else {
     document.getElementById('l-ev-nome').textContent = 'Fim do ano letivo!';
     document.getElementById('l-ev-dias').textContent = '0';
     document.getElementById('l-ev-emoji').textContent = '🎓';
     document.getElementById('l-ev-humor').textContent = '😍';
+    document.getElementById('l-ev-data').textContent = '15 de dezembro';
     evBox.className = 'letivo-evento';
   }
 }
